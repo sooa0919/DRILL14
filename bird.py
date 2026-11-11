@@ -15,7 +15,8 @@ FLIGHT_SPEED_PPS = 160.0
 class Bird:
     image = None
 
-    def __init__(self, x, y, initial_frame=0):
+    def __init__(self, x, y, initial_frame=0, direction=1,
+                 speed=FLIGHT_SPEED_PPS):
         if Bird.image is None:
             Bird.image = load_image('bird_animation.png')
         self.x, self.y = x, y
@@ -23,8 +24,12 @@ class Bird:
         self.left = DRAW_WIDTH / 2
         self.right = get_canvas_width() - DRAW_WIDTH / 2
         self.x = max(self.left, min(self.right, x))
-        self.travel = self.x - self.left
-        self.direction = 1
+        self.direction = 1 if direction >= 0 else -1
+        self.speed = speed
+        offset = self.x - self.left
+        span = self.right - self.left
+        # 같은 위치라도 왼쪽 비행은 왕복 위상의 뒤쪽 절반에서 시작한다.
+        self.travel = offset if self.direction == 1 else 2 * span - offset
 
     def source_rect(self):
         # 파일은 위쪽부터 행 순서로 배치되고 pico2d는 아래쪽이 원점이다.
@@ -44,7 +49,7 @@ class Bird:
             self.x = get_canvas_width() / 2
             return
         # 왕복 거리로 나눈 나머지는 여러 번 경계를 넘는 긴 프레임도 처리한다.
-        self.travel = (self.travel + FLIGHT_SPEED_PPS *
+        self.travel = (self.travel + self.speed *
                        game_framework.frame_time) % (2 * span)
         self.direction = 1 if self.travel < span else -1
         self.x = self.left + (self.travel if self.direction == 1

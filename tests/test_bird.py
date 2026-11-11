@@ -1,4 +1,5 @@
 import unittest
+import random
 from unittest.mock import Mock, patch
 
 import bird
@@ -86,6 +87,17 @@ class BirdTests(unittest.TestCase):
         self.assertAlmostEqual(subject.x, 400)
         self.assertEqual(subject.direction, 1)
 
+    def test_left_start_moves_left_without_initial_jump(self):
+        subject = bird.Bird(800, 400, direction=-1, speed=125)
+        self.assertEqual((subject.x, subject.direction), (800, -1))
+        game_framework.frame_time = 0
+        subject.update()
+        self.assertEqual((subject.x, subject.direction), (800, -1))
+        game_framework.frame_time = 0.2
+        subject.update()
+        self.assertAlmostEqual(subject.x, 775)
+        self.assertEqual(subject.direction, -1)
+
     def test_same_duration_at_different_frame_rates(self):
         results = []
         for fps in (30, 60, 144):
@@ -103,11 +115,17 @@ class BirdTests(unittest.TestCase):
     def test_ten_distinct_birds_inside_sky(self):
         with patch('flock.get_canvas_width', return_value=1600), \
                 patch('flock.get_canvas_height', return_value=600):
-            birds = flock.create_flock()
+            birds = flock.create_flock(random.Random(42))
         self.assertEqual(len(birds), 10)
         self.assertEqual(len({(b.x, b.y) for b in birds}), 10)
         self.assertEqual(len({b.frame for b in birds}), 10)
+        self.assertEqual(len({b.y for b in birds}), 10)
+        self.assertEqual([b.direction for b in birds].count(-1), 5)
+        self.assertEqual([b.direction for b in birds].count(1), 5)
+        self.assertEqual(len({b.speed for b in birds}), 10)
         for subject in birds:
+            self.assertTrue(120 <= subject.speed <= 190)
+            self.assertTrue(subject.left <= subject.x <= subject.right)
             self.assertGreaterEqual(subject.y - bird.DRAW_HEIGHT / 2, 60)
             self.assertLessEqual(subject.y + bird.DRAW_HEIGHT / 2, 600)
 
