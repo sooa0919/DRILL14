@@ -51,5 +51,7 @@ class Bird:
                               else 2 * span - self.travel)
 
     def draw(self):
-        self.image.clip_draw(*self.source_rect(), self.x, self.y,
-                             DRAW_WIDTH, DRAW_HEIGHT)
+        flip = '' if self.direction == 1 else 'h'
+        self.image.clip_composite_draw(
+            *self.source_rect(), 0, flip, self.x, self.y,
+            DRAW_WIDTH, DRAW_HEIGHT)
