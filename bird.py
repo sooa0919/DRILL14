@@ -1,4 +1,4 @@
-from pico2d import load_image
+from pico2d import get_canvas_width, load_image
 
 import game_framework
 
@@ -9,6 +9,7 @@ FRAME_COUNT = 14
 DRAW_WIDTH = 92
 DRAW_HEIGHT = 84
 FRAMES_PER_SECOND = 14.0
+FLIGHT_SPEED_PPS = 160.0
 
 
 class Bird:
@@ -19,6 +20,11 @@ class Bird:
             Bird.image = load_image('bird_animation.png')
         self.x, self.y = x, y
         self.frame = float(initial_frame) % FRAME_COUNT
+        self.left = DRAW_WIDTH / 2
+        self.right = get_canvas_width() - DRAW_WIDTH / 2
+        self.x = max(self.left, min(self.right, x))
+        self.travel = self.x - self.left
+        self.direction = 1
 
     def source_rect(self):
         # 파일은 위쪽부터 행 순서로 배치되고 pico2d는 아래쪽이 원점이다.
@@ -33,6 +39,16 @@ class Bird:
     def update(self):
         self.frame = (self.frame + FRAMES_PER_SECOND *
                       game_framework.frame_time) % FRAME_COUNT
+        span = self.right - self.left
+        if span <= 0:
+            self.x = get_canvas_width() / 2
+            return
+        # 왕복 거리로 나눈 나머지는 여러 번 경계를 넘는 긴 프레임도 처리한다.
+        self.travel = (self.travel + FLIGHT_SPEED_PPS *
+                       game_framework.frame_time) % (2 * span)
+        self.direction = 1 if self.travel < span else -1
+        self.x = self.left + (self.travel if self.direction == 1
+                              else 2 * span - self.travel)
 
     def draw(self):
         self.image.clip_draw(*self.source_rect(), self.x, self.y,
